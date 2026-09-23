@@ -154,6 +154,24 @@ struct InboxImporterTests {
         #expect(importer().scan().imported == 1)
     }
 
+    @Test func translationArrivingAfterDeleteIsDiscarded() throws {
+        let id = UUID()
+        _ = try write(Fixture.payload(id: id, status: "pending"))
+        let importer = importer()
+        importer.scan()
+        let entry = try #require(try allEntries().first)
+
+        importer.markDeleted(id)
+        context.delete(entry)
+        try context.save()
+        // The hook's final write races the delete and lands afterwards.
+        let late = try write(Fixture.payload(id: id, status: "done", translation: "Late."))
+        importer.scan()
+
+        #expect(try allEntries().isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: late.path))
+    }
+
     @Test func stalePendingTimesOut() throws {
         let created = Date(timeIntervalSince1970: 1_800_000_000)
         let url = try write(Fixture.payload(status: "pending", date: created))

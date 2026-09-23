@@ -31,6 +31,34 @@ final class InboxImporter {
 
     var rejectedURL: URL { inboxURL.appending(path: "rejected", directoryHint: .isDirectory) }
 
+    /// Ids the user deleted. A translation that lands after the delete is discarded instead of
+    /// bringing the entry back. Dot-directory, so scans and the hook ignore it.
+    var tombstonesURL: URL { inboxURL.appending(path: ".deleted", directoryHint: .isDirectory) }
+    static let tombstoneLifetime: TimeInterval = 24 * 60 * 60
+
+    func markDeleted(_ id: UUID) {
+        try? fileManager.createDirectory(at: tombstonesURL, withIntermediateDirectories: true)
+        fileManager.createFile(atPath: tombstonesURL.appending(path: id.uuidString).path, contents: Data())
+        try? fileManager.removeItem(at: inboxURL.appending(path: "\(id.uuidString).json"))
+    }
+
+    private func isDeleted(_ id: UUID) -> Bool {
+        fileManager.fileExists(atPath: tombstonesURL.appending(path: id.uuidString).path)
+    }
+
+    private func pruneTombstones() {
+        let cutoff = now().addingTimeInterval(-Self.tombstoneLifetime)
+        let files = (try? fileManager.contentsOfDirectory(
+            at: tombstonesURL, includingPropertiesForKeys: [.contentModificationDateKey]
+        )) ?? []
+        for url in files {
+            let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            if let modified, modified < cutoff {
+                try? fileManager.removeItem(at: url)
+            }
+        }
+    }
+
     /// Files to delete once the store has been saved. Deleting earlier would lose the only copy of
     /// a translation if the save fails.
     private var filesToRemove: [URL] = []
@@ -54,6 +82,7 @@ final class InboxImporter {
         }
 
         summary.timedOut = expireStalePending()
+        pruneTombstones()
         do {
             try context.save()
             filesToRemove.forEach { try? fileManager.removeItem(at: $0) }
@@ -68,6 +97,10 @@ final class InboxImporter {
     private func importFile(at url: URL) throws {
         let payload = try InboxPayload.decode(Data(contentsOf: url))
         let id = payload.id
+        if isDeleted(id) {
+            try? fileManager.removeItem(at: url)
+            return
+        }
         let existing = try context.fetch(FetchDescriptor<Entry>(predicate: #Predicate { $0.id == id })).first
 
         if let existing {

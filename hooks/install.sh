@@ -99,9 +99,9 @@ if [ -f "$target" ]; then
   echo "Backup: $backup"
 fi
 tmp="$target.machiai-tmp.$$"
-mode=600
-[ -f "$target" ] && mode="$(stat -f %Lp "$target")"
-printf '%s\n' "$updated" > "$tmp" && chmod "$mode" "$tmp" && mv -f "$tmp" "$target"
+file_mode=600
+[ -f "$target" ] && file_mode="$(stat -f %Lp "$target")"
+printf '%s\n' "$updated" > "$tmp" && chmod "$file_mode" "$tmp" && mv -f "$tmp" "$target"
 
 if [ "$mode" = "install" ]; then
   echo "Installed Machiai hook into $target"

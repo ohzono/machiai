@@ -150,9 +150,8 @@ final class AppModel {
             selectedEntryID = neighbors.first(where: { $0 > index }).map { ids[$0] }
                 ?? neighbors.last.map { ids[$0] }
         }
-        // A pending entry still has its inbox file; without removing it the next scan would
-        // import the entry again. The hook does not recreate a file that is gone.
-        try? FileManager.default.removeItem(at: paths.inbox.appending(path: "\(entry.id.uuidString).json"))
+        // A pending entry still has its inbox file, and its translation may land at any moment.
+        importer.markDeleted(entry.id)
         context.delete(entry)
         save()
     }
