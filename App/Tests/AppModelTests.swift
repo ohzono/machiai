@@ -131,6 +131,21 @@ struct AppModelTests {
         #expect(model.selectedEntryID == entries[0].id)
     }
 
+    @Test func deletingAPendingEntryRemovesItsInboxFile() throws {
+        try FileManager.default.createDirectory(at: model.paths.inbox, withIntermediateDirectories: true)
+        let id = UUID()
+        let file = model.paths.inbox.appending(path: "\(id.uuidString).json")
+        try JSONSerialization.data(withJSONObject: Fixture.payload(id: id, status: "pending")).write(to: file)
+        model.importInbox()
+        let entry = try #require(model.entries(in: .all).first)
+
+        model.delete(entry)
+        model.importInbox()
+
+        #expect(!FileManager.default.fileExists(atPath: file.path))
+        #expect(model.entries(in: .all).isEmpty)
+    }
+
     @Test func fontSizeIsClamped() {
         model.resetFontSize()
         #expect(model.preferences.readingFontSize == Preferences.defaultFontSize)

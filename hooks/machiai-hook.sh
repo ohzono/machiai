@@ -78,14 +78,20 @@ write_entry pending "" "" || { log "failed to write pending entry"; exit 0; }
 # stdin/stdout/stderr must all be detached, otherwise Claude Code waits for the job to finish.
 (
   errfile="$INBOX/.$id.err"
+  finish() {
+    # The app removes the pending file when the user deletes the entry or it times out;
+    # a late translation must not bring it back.
+    [ -e "$dest" ] || return 0
+    write_entry "$@"
+  }
   if translation="$(printf '%s' "$prompt" | MACHIAI_CHILD=1 "$HOOK_DIR/translate.sh" 2>"$errfile")" \
     && [ -n "$(printf '%s' "$translation" | tr -d '[:space:]')" ]; then
-    write_entry done "$translation" ""
+    finish done "$translation" ""
   else
     err="$(head -c 300 "$errfile" 2>/dev/null)"
     [ -z "$err" ] && err="Translator returned no output"
     log "translate failed for $id: $err"
-    write_entry failed "" "$err"
+    finish failed "" "$err"
   fi
   rm -f "$errfile"
 ) </dev/null >/dev/null 2>&1 &

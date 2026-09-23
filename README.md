@@ -4,6 +4,8 @@
 
 [日本語](#日本語) · MIT License · macOS 15+
 
+![Machiai showing the English version of a Japanese prompt](docs/images/screenshot.png)
+
 You type a prompt to Claude Code in your own language and wait while it thinks.
 Machiai uses that wait. In the background it translates **what you just said** into natural
 English and puts it in a small reading app. Press Cmd+Tab, read how you would have said it,
@@ -11,7 +13,7 @@ check it off, and go back to the terminal.
 
 - **Your own words are the best study material.** You know what you meant, you care about it,
   and you will say something similar again tomorrow.
-- **Never slows the agent down.** The hook returns in milliseconds; translation runs detached.
+- **Never slows the agent down.** The hook returns in a fraction of a second; translation runs detached.
   Claude's reply never waits for Machiai.
 - **Never steals focus.** New items only update the Dock badge. You go to Machiai when you want to.
 - **Read → check → back to work.** Checking an item moves to the next one. When the inbox is empty
@@ -155,7 +157,7 @@ Claude Code に日本語で指示を出して待っている間に、Machiai が
 それだけです。
 
 - **自分の言葉だから覚えやすい**: 何を言いたかったか分かっていて、明日もまた似たことを言う
-- **エージェントを待たせない**: hook は数ミリ秒で抜け、翻訳は裏で走る
+- **エージェントを待たせない**: hook は1秒もかからず抜け、翻訳は裏で走る
 - **フォーカスを奪わない**: 新着は Dock バッジだけ
 - **読んだらチェック → 次へ**: 全部読むと Machiai は自動で隠れ、ターミナルが前面に戻る
 - **お気に入り**: 覚えたい言い回しを残せる

@@ -68,6 +68,22 @@ export MACHIAI_TRANSLATE_CMD='printf "  \n"'
 run_hook 'テスト'
 check "blank translator output is a failure" "wait_status failed 5"
 
+echo "hook: late results"
+new_home
+export MACHIAI_TRANSLATE_CMD='sleep 2; echo late'
+run_hook 'テスト'
+rm -f "$(entries)"
+sleep 3
+check "deleted entry is not recreated by a late translation" "[ \"\$(count)\" = 0 ] && [ -z \"\$(find \"\$MACHIAI_HOME/inbox\" -name '.*')\" ]"
+
+echo "hook: hostile prompt text"
+new_home
+export MACHIAI_TRANSLATE_CMD='cat'
+hostile="$(printf '引用 "x" と '"'"'y'"'"' と $(touch %s/pwned) と `id` と $HOME\n改行も' "$MACHIAI_HOME")"
+run_hook "$hostile"
+check "hostile prompt is stored verbatim" "wait_status done 5 && [ \"\$(\$JQ -r .source_text \"\$(entries)\")\" = \"\$hostile\" ]"
+check "hostile prompt is not executed" "[ ! -e \"\$MACHIAI_HOME/pwned\" ]"
+
 echo "hook: skip rules"
 export MACHIAI_TRANSLATE_CMD='echo x'
 for p in '' '   ' '/clear' '  /model sonnet' '!ls' 'already english text' "$(printf 'あ%.0s' $(seq 1 1300))"; do
@@ -104,6 +120,15 @@ out="$("$INSTALL")"
 check "second install is a no-op" "[ \"\$before\" = \"\$(cat \"$S/dotfiles/settings.json\")\" ] && echo \"\$out\" | grep -q 'No change'"
 "$INSTALL" --uninstall >/dev/null
 check "uninstall removes only machiai" "\$JQ -e '.model == \"opus\" and ([.hooks.UserPromptSubmit[].hooks[].command] == [\"other.sh\"])' \"$S/settings.json\" >/dev/null"
+
+chmod 600 "$S/dotfiles/settings.json"
+"$INSTALL" >/dev/null
+check "keeps the settings file mode" "[ \"\$(stat -f %Lp \"$S/dotfiles/settings.json\")\" = 600 ]"
+"$INSTALL" --uninstall >/dev/null
+
+L="$(mktemp -d)"; ln -s "$L/b.json" "$L/a.json"; ln -s "$L/a.json" "$L/b.json"
+CLAUDE_SETTINGS="$L/a.json" "$INSTALL" >/dev/null 2>&1; rc=$?
+check "symlink loop fails instead of hanging" "[ $rc -ne 0 ]"
 
 S2="$(mktemp -d)"; export CLAUDE_SETTINGS="$S2/settings.json"
 "$INSTALL" >/dev/null; "$INSTALL" --uninstall >/dev/null

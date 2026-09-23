@@ -31,9 +31,14 @@ final class InboxImporter {
 
     var rejectedURL: URL { inboxURL.appending(path: "rejected", directoryHint: .isDirectory) }
 
+    /// Files to delete once the store has been saved. Deleting earlier would lose the only copy of
+    /// a translation if the save fails.
+    private var filesToRemove: [URL] = []
+
     @discardableResult
     func scan() -> Summary {
         var summary = Summary()
+        filesToRemove = []
         try? fileManager.createDirectory(at: inboxURL, withIntermediateDirectories: true)
 
         let files = (try? fileManager.contentsOfDirectory(at: inboxURL, includingPropertiesForKeys: nil)) ?? []
@@ -49,7 +54,14 @@ final class InboxImporter {
         }
 
         summary.timedOut = expireStalePending()
-        try? context.save()
+        do {
+            try context.save()
+            filesToRemove.forEach { try? fileManager.removeItem(at: $0) }
+        } catch {
+            // Keep the files; the next scan imports them again (upserts are idempotent).
+            context.rollback()
+        }
+        filesToRemove = []
         return summary
     }
 
@@ -76,7 +88,7 @@ final class InboxImporter {
         }
 
         if payload.status.isTerminal {
-            try? fileManager.removeItem(at: url)
+            filesToRemove.append(url)
         }
     }
 
@@ -104,7 +116,7 @@ final class InboxImporter {
             entry.status = .failed
             entry.errorMessage = String(localized: "Timed out")
             entry.updatedAt = now()
-            try? fileManager.removeItem(at: inboxURL.appending(path: "\(entry.id.uuidString).json"))
+            filesToRemove.append(inboxURL.appending(path: "\(entry.id.uuidString).json"))
         }
         return stale.count
     }

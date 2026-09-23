@@ -38,7 +38,13 @@ fi
 
 # Resolve symlinks so dotfiles-managed settings are edited in place, not replaced by a file.
 target="$SETTINGS"
+hops=0
 while [ -L "$target" ]; do
+  hops=$((hops + 1))
+  if [ "$hops" -gt 40 ]; then
+    echo "Refusing to edit: too many symlinks (loop?) at $SETTINGS" >&2
+    exit 1
+  fi
   link="$(readlink "$target")"
   case "$link" in /*) target="$link" ;; *) target="$(dirname "$target")/$link" ;; esac
 done
@@ -93,7 +99,9 @@ if [ -f "$target" ]; then
   echo "Backup: $backup"
 fi
 tmp="$target.machiai-tmp.$$"
-printf '%s\n' "$updated" > "$tmp" && mv -f "$tmp" "$target"
+mode=600
+[ -f "$target" ] && mode="$(stat -f %Lp "$target")"
+printf '%s\n' "$updated" > "$tmp" && chmod "$mode" "$tmp" && mv -f "$tmp" "$target"
 
 if [ "$mode" = "install" ]; then
   echo "Installed Machiai hook into $target"
