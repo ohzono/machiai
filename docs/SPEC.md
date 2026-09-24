@@ -179,6 +179,11 @@ The app bundles `hooks/` in `Machiai.app/Contents/Resources/hooks/` so binary us
   user state (`isRead`, `isFavorite`). Never downgrade `done/failed` back to `pending`.
 - After a successful import of a `done` or `failed` entry, delete the file. Keep `pending` files.
 - Malformed / unsupported-version files are moved to `inbox/rejected/`.
+- Deleting an entry writes a tombstone `inbox/.deleted/<id>` (pruned after 24 h) and removes the
+  inbox file. Files whose id has a tombstone are discarded on import, so a translation that lands
+  after the delete never resurrects the entry. The hook also skips its final write when the
+  pending file is already gone (deleted or timed out).
+- Terminal files are removed only after the store saved successfully.
 - A `pending` entry older than 10 minutes with no update becomes `failed` ("Timed out"), and its
   file is removed.
 - Import must never call `NSApp.activate` or otherwise bring the app forward.
