@@ -94,7 +94,9 @@ fi
 
 mkdir -p "$(dirname "$target")"
 if [ -f "$target" ]; then
-  backup="$target.machiai-backup-$(date +%Y%m%d%H%M%S)"
+  # Keep backups out of the settings directory: it is often a dotfiles git repo.
+  mkdir -p "$MACHIAI_HOME/backups"
+  backup="$MACHIAI_HOME/backups/settings.json.$(date +%Y%m%d%H%M%S)"
   cp "$target" "$backup"
   echo "Backup: $backup"
 fi

@@ -157,7 +157,8 @@ arrows, or notes.
 - Copies `machiai-hook.sh` and `translate.sh` into `$MACHIAI_HOME/hooks/`.
 - Merges a `UserPromptSubmit` command hook pointing at the installed script into
   `~/.claude/settings.json` using `jq`, **idempotently** (no duplicate entry on re-run), after
-  writing a timestamped backup. Resolves symlinks and writes through them (dotfiles repos).
+  writing a timestamped backup to `$MACHIAI_HOME/backups/` (never next to the settings file, which
+  is often inside a dotfiles repo). Resolves symlinks and writes through them.
 - `--uninstall` removes only Machiai's entry.
 - `--print` prints the JSON snippet instead of editing anything.
 - Creates `$MACHIAI_HOME/enabled` on install so capture starts ON.
