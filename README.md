@@ -88,6 +88,13 @@ Remove it with `install.sh --uninstall`.
 
 Toggle **Capture** in the toolbar or the app menu to pause without uninstalling.
 
+### Usage and cost
+
+Each captured prompt costs one `claude -p` call on your own Claude account. By default Machiai
+translates **only while the app is open**: quit Machiai and nothing is translated or spent.
+Turn off **Settings → Translate only while Machiai is open** if you want translations to pile up
+while the app is closed.
+
 ## Configuration
 
 Settings are written to `~/Library/Application Support/Machiai/config.env`, which the hook reads:
@@ -97,6 +104,7 @@ Settings are written to `~/Library/Application Support/Machiai/config.env`, whic
 | `MACHIAI_MODEL` | `sonnet` | Model passed to `claude -p` |
 | `MACHIAI_TARGET_LANG` | `English` | Language to translate into |
 | `MACHIAI_MAX_CHARS` | `1200` | Longer prompts are skipped |
+| `MACHIAI_REQUIRE_APP` | `1` | `1`: translate only while Machiai is open. `0`: always |
 | `MACHIAI_TRANSLATE_CMD` | *(unset)* | Use any other translator (see below) |
 
 ### Bring your own translator
@@ -170,6 +178,12 @@ Claude Code に日本語で指示を出して待っている間に、Machiai が
   Claude Code の hook で行い、翻訳も既定で同じ `claude` CLI を使います。
   他のエージェントからは、[JSON を inbox に置く](#other-agents)ことで使えます。
 - macOS 15 以降
+
+### 利用枠について
+
+取り込んだプロンプト1件につき、あなたの Claude アカウントで `claude -p` を1回呼び出します。
+既定では **Machiai を開いている間だけ** 翻訳するので、アプリを終了すれば翻訳も消費も止まります。
+一時停止はツールバーの Capture、常に翻訳させたい場合は **設定 → Machiai を開いている間だけ翻訳する** を OFF に。
 
 セットアップは上の [Install](#install) を参照してください（アプリの **設定 → Claude Code に
 インストール** からも行えます）。翻訳は既定であなた自身の `claude` CLI（sonnet）を使い、

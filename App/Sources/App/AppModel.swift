@@ -82,6 +82,18 @@ final class AppModel {
 
     private var context: ModelContext { container.mainContext }
 
+    // MARK: - Lifecycle
+
+    /// Tells the hook that Machiai is open (see `translatesOnlyWhileOpen`).
+    func markRunning(pid: Int32 = ProcessInfo.processInfo.processIdentifier) {
+        try? FileManager.default.createDirectory(at: paths.home, withIntermediateDirectories: true)
+        try? "\(pid)\n".write(to: paths.appPID, atomically: true, encoding: .utf8)
+    }
+
+    func clearRunning() {
+        try? FileManager.default.removeItem(at: paths.appPID)
+    }
+
     // MARK: - Inbox
 
     func startWatching() {

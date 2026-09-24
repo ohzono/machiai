@@ -44,6 +44,30 @@ final class HookInstaller {
             .contains { (($0["command"] as? String) ?? "").contains("machiai-hook.sh") }
     }
 
+    /// After an app update, the copies installed under `MACHIAI_HOME/hooks` are stale. Refresh them
+    /// from the bundle, but only when the hook is installed (never install behind the user's back).
+    func syncInstalledHooks(into directory: URL) {
+        guard let bundledDir = bundledScript?.deletingLastPathComponent() else { return }
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: directory.appending(path: "machiai-hook.sh").path) else { return }
+        for name in ["machiai-hook.sh", "translate.sh"] {
+            let source = bundledDir.appending(path: name)
+            let destination = directory.appending(path: name)
+            guard let fresh = try? Data(contentsOf: source),
+                  (try? Data(contentsOf: destination)) != fresh
+            else { continue }
+            let temporary = directory.appending(path: ".\(name).tmp")
+            do {
+                try fresh.write(to: temporary)
+                _ = try fileManager.replaceItemAt(destination, withItemAt: temporary)
+                // replaceItemAt keeps the old file's attributes; the hook must be executable.
+                try fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: destination.path)
+            } catch {
+                try? fileManager.removeItem(at: temporary)
+            }
+        }
+    }
+
     func install() async {
         await run(arguments: [])
     }

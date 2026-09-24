@@ -146,6 +146,13 @@ struct AppModelTests {
         #expect(model.entries(in: .all).isEmpty)
     }
 
+    @Test func runningMarkerIsWrittenAndCleared() throws {
+        model.markRunning(pid: 4242)
+        #expect(try String(contentsOf: model.paths.appPID, encoding: .utf8) == "4242\n")
+        model.clearRunning()
+        #expect(!FileManager.default.fileExists(atPath: model.paths.appPID.path))
+    }
+
     @Test func fontSizeIsClamped() {
         model.resetFontSize()
         #expect(model.preferences.readingFontSize == Preferences.defaultFontSize)
