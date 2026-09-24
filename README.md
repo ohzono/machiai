@@ -2,7 +2,7 @@
 
 **Turn the wait for your AI coding agent into English practice — with the words you just typed.**
 
-[日本語](#日本語) · MIT License · macOS 15+
+For [Claude Code](https://docs.claude.com/en/docs/claude-code) on macOS 15+ · MIT License · [日本語](#日本語)
 
 ![Machiai showing the English version of a Japanese prompt](docs/images/screenshot.png)
 
@@ -44,7 +44,9 @@ or very long (pasted logs) are skipped.
 ## Requirements
 
 - macOS 15 or later (uses the system `/usr/bin/jq`)
-- [Claude Code](https://docs.claude.com/en/docs/claude-code) logged in (subscription or API key)
+- [Claude Code](https://docs.claude.com/en/docs/claude-code) logged in (subscription or API key).
+  Machiai captures prompts through a Claude Code hook and, by default, translates with the same
+  `claude` CLI. Other agents can still feed it through the [JSON inbox](#other-agents).
 - To build: Xcode 16+ and [Tuist](https://tuist.dev) (`brew install tuist` or `mise install`)
 
 ## Install
@@ -67,8 +69,8 @@ Open Machiai → **Settings → Install for Claude Code**, or run:
 ```
 
 The installer copies the hook to `~/Library/Application Support/Machiai/hooks/`, adds one
-`UserPromptSubmit` entry to `~/.claude/settings.json` (backup first, symlinks respected,
-re-running is a no-op) and turns capture on. New Claude Code sessions pick it up.
+`UserPromptSubmit` entry to `~/.claude/settings.json` (backed up to
+`~/Library/Application Support/Machiai/backups/`, symlinks respected, re-running is a no-op) and turns capture on. New Claude Code sessions pick it up.
 
 Prefer to edit settings yourself? `install.sh --print` prints the snippet.
 Remove it with `install.sh --uninstall`.
@@ -161,6 +163,13 @@ Claude Code に日本語で指示を出して待っている間に、Machiai が
 - **フォーカスを奪わない**: 新着は Dock バッジだけ
 - **読んだらチェック → 次へ**: 全部読むと Machiai は自動で隠れ、ターミナルが前面に戻る
 - **お気に入り**: 覚えたい言い回しを残せる
+
+### 必要なもの
+
+- **Claude Code**（ログイン済み。サブスクリプションでも API キーでも可）。プロンプトの取り込みは
+  Claude Code の hook で行い、翻訳も既定で同じ `claude` CLI を使います。
+  他のエージェントからは、[JSON を inbox に置く](#other-agents)ことで使えます。
+- macOS 15 以降
 
 セットアップは上の [Install](#install) を参照してください（アプリの **設定 → Claude Code に
 インストール** からも行えます）。翻訳は既定であなた自身の `claude` CLI（sonnet）を使い、

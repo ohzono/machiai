@@ -115,7 +115,8 @@ check "adds exactly one machiai hook" "[ \"\$(\$JQ '[.hooks.UserPromptSubmit[].h
 check "keeps other hooks and keys" "\$JQ -e '.model == \"opus\" and ([.hooks.UserPromptSubmit[].hooks[].command] | index(\"other.sh\") != null)' \"$S/settings.json\" >/dev/null"
 check "copies executable hooks" "[ -x \"\$MACHIAI_HOME/hooks/machiai-hook.sh\" ] && [ -x \"\$MACHIAI_HOME/hooks/translate.sh\" ]"
 check "creates enabled flag" "[ -f \"\$MACHIAI_HOME/enabled\" ]"
-check "writes a backup" "ls \"$S/dotfiles\"/settings.json.machiai-backup-* >/dev/null 2>&1"
+check "writes a backup under MACHIAI_HOME" "ls \"\$MACHIAI_HOME\"/backups/settings.json.* >/dev/null 2>&1"
+check "leaves nothing next to settings.json" "[ \"\$(ls \"$S/dotfiles\")\" = settings.json ]"
 before="$(cat "$S/dotfiles/settings.json")"
 out="$("$INSTALL")"
 check "second install is a no-op" "[ \"\$before\" = \"\$(cat \"$S/dotfiles/settings.json\")\" ] && echo \"\$out\" | grep -q 'No change'"
@@ -130,6 +131,14 @@ check "keeps the settings file mode" "[ \"\$(stat -f %Lp \"$S/dotfiles/settings.
 L="$(mktemp -d)"; ln -s "$L/b.json" "$L/a.json"; ln -s "$L/a.json" "$L/b.json"
 CLAUDE_SETTINGS="$L/a.json" "$INSTALL" >/dev/null 2>&1; rc=$?
 check "symlink loop fails instead of hanging" "[ $rc -ne 0 ]"
+
+B1="$(mktemp -d)"; B2="$(mktemp -d)"; echo '{}' > "$B1/s.json"; echo '{}' > "$B2/s.json"
+before_count="$(ls "$MACHIAI_HOME/backups" | wc -l)"
+# Freeze `date` so both installs share one timestamp.
+FAKEBIN="$(mktemp -d)"; printf '#!/bin/sh\necho 20260101000000\n' > "$FAKEBIN/date"; chmod +x "$FAKEBIN/date"
+CLAUDE_SETTINGS="$B1/s.json" PATH="$FAKEBIN:$PATH" "$INSTALL" >/dev/null
+CLAUDE_SETTINGS="$B2/s.json" PATH="$FAKEBIN:$PATH" "$INSTALL" >/dev/null
+check "backups for different targets in the same second do not collide" "[ \$(( \$(ls \"\$MACHIAI_HOME/backups\" | wc -l) - before_count )) -eq 2 ]"
 
 S2="$(mktemp -d)"; export CLAUDE_SETTINGS="$S2/settings.json"
 "$INSTALL" >/dev/null; "$INSTALL" --uninstall >/dev/null
