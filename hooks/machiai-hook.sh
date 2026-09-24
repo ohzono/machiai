@@ -19,6 +19,16 @@ if [ -f "$MACHIAI_HOME/config.env" ]; then
 fi
 MACHIAI_MAX_CHARS="${MACHIAI_MAX_CHARS:-1200}"
 MACHIAI_TARGET_LANG="${MACHIAI_TARGET_LANG:-English}"
+MACHIAI_REQUIRE_APP="${MACHIAI_REQUIRE_APP:-1}"
+
+# By default, translate only while Machiai is open: no usage is spent when the app is closed.
+# The app writes its pid to app.pid on launch and removes it on quit; a stale pid (crash) is
+# rejected by checking that the process is still Machiai.
+if [ "$MACHIAI_REQUIRE_APP" = "1" ]; then
+  pid="$(cat "$MACHIAI_HOME/app.pid" 2>/dev/null)"
+  case "$pid" in '' | *[!0-9]*) exit 0 ;; esac
+  case "$(ps -p "$pid" -o comm= 2>/dev/null)" in */Machiai | Machiai) ;; *) exit 0 ;; esac
+fi
 
 JQ=/usr/bin/jq
 [ -x "$JQ" ] || JQ=jq

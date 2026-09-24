@@ -1,3 +1,4 @@
+import AppKit
 import SwiftData
 import SwiftUI
 
@@ -13,7 +14,15 @@ struct MachiaiApp: App {
         } catch {
             fatalError("Could not open the Machiai store at \(paths.store.path): \(error)")
         }
-        _model = State(initialValue: AppModel(paths: paths, container: container))
+        let model = AppModel(paths: paths, container: container)
+        model.installer.syncInstalledHooks(into: paths.installedHooks)
+        model.markRunning()
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { model.clearRunning() }
+        }
+        _model = State(initialValue: model)
     }
 
     var body: some Scene {

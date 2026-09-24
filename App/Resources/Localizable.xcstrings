@@ -151,6 +151,16 @@
         }
       }
     },
+    "Each captured prompt costs one claude -p call on your own account. With \"only while open\", nothing is translated or spent while Machiai is closed. Set MACHIAI_TRANSLATE_CMD in config.env to use another translator.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取り込んだプロンプト1件につき、あなたのアカウントで claude -p を1回呼び出します。「開いている間だけ」を ON にすると、Machiai を閉じている間は翻訳せず、利用枠も消費しません。別の翻訳手段を使うには config.env で MACHIAI_TRANSLATE_CMD を設定してください。"
+          }
+        }
+      }
+    },
     "Entry": {
       "localizations": {
         "ja": {
@@ -461,6 +471,16 @@
         }
       }
     },
+    "Translate only while Machiai is open": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Machiai を開いている間だけ翻訳する"
+          }
+        }
+      }
+    },
     "Translating…": {
       "localizations": {
         "ja": {
@@ -527,16 +547,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "未読"
-          }
-        }
-      }
-    },
-    "Uses your own claude CLI (claude -p --model …). Set MACHIAI_TRANSLATE_CMD in config.env to use another translator.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "あなたの claude CLI（claude -p --model …）で翻訳します。別の翻訳手段を使うには config.env で MACHIAI_TRANSLATE_CMD を設定してください。"
           }
         }
       }

@@ -27,6 +27,11 @@ final class Preferences {
         didSet { writeConfig() }
     }
 
+    /// When on (the default), the hook skips prompts while Machiai is closed, so no usage is spent.
+    var translatesOnlyWhileOpen: Bool {
+        didSet { writeConfig() }
+    }
+
     var readingFontSize: Double {
         didSet {
             let clamped = min(max(readingFontSize, Self.fontSizeRange.lowerBound), Self.fontSizeRange.upperBound)
@@ -54,6 +59,7 @@ final class Preferences {
         let values = Self.parseConfig(config)
         model = values["MACHIAI_MODEL"] ?? Self.defaultModel
         targetLanguage = values["MACHIAI_TARGET_LANG"] ?? Self.defaultTargetLanguage
+        translatesOnlyWhileOpen = values["MACHIAI_REQUIRE_APP"] != "0"
 
         let storedSize = defaults.double(forKey: Keys.readingFontSize)
         readingFontSize = storedSize == 0 ? Self.defaultFontSize : storedSize
@@ -84,6 +90,7 @@ final class Preferences {
         var values = Self.parseConfig((try? String(contentsOf: paths.configFile, encoding: .utf8)) ?? "")
         values["MACHIAI_MODEL"] = model.trimmingCharacters(in: .whitespaces)
         values["MACHIAI_TARGET_LANG"] = targetLanguage.trimmingCharacters(in: .whitespaces)
+        values["MACHIAI_REQUIRE_APP"] = translatesOnlyWhileOpen ? "1" : "0"
         let text = values.keys.sorted()
             .map { "\($0)=\(Self.shellQuote(values[$0] ?? ""))" }
             .joined(separator: "\n") + "\n"

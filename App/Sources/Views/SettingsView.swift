@@ -8,6 +8,7 @@ struct SettingsView: View {
         Form {
             Section {
                 Toggle("Capture prompts", isOn: $preferences.isCaptureEnabled)
+                Toggle("Translate only while Machiai is open", isOn: $preferences.translatesOnlyWhileOpen)
                 TextField("Model", text: $preferences.model, prompt: Text(Preferences.defaultModel))
                 TextField(
                     "Translate into",
@@ -17,7 +18,7 @@ struct SettingsView: View {
             } header: {
                 Text("Translation")
             } footer: {
-                Text("Uses your own claude CLI (claude -p --model …). Set MACHIAI_TRANSLATE_CMD in config.env to use another translator.")
+                Text("Each captured prompt costs one claude -p call on your own account. With \"only while open\", nothing is translated or spent while Machiai is closed. Set MACHIAI_TRANSLATE_CMD in config.env to use another translator.")
                     .foregroundStyle(.secondary)
             }
 

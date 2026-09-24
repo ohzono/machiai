@@ -106,6 +106,9 @@ Translation lives on the hook side, not in the app, so that:
 
 1. If `MACHIAI_CHILD` is set → exit 0 (recursion guard for the nested `claude -p`).
 2. If `$MACHIAI_HOME/enabled` does not exist → exit 0.
+   If `MACHIAI_REQUIRE_APP` is `1` (default) and `$MACHIAI_HOME/app.pid` does not name a live
+   process whose executable is `Machiai` → exit 0 (nothing is translated or spent while the app is
+   closed). The app writes `app.pid` at launch and removes it on quit.
 3. Read stdin JSON; take `.prompt`, `.session_id`, `.cwd`.
 4. Skip (exit 0, write nothing) when the prompt:
    - is empty/whitespace,
@@ -130,7 +133,9 @@ Translation lives on the hook side, not in the app, so that:
   `~/.local/bin/claude`, `~/.claude/local/claude`, `/opt/homebrew/bin/claude`,
   `/usr/local/bin/claude`.
 - `config.env` keys: `MACHIAI_MODEL` (default `sonnet`), `MACHIAI_TARGET_LANG` (default `English`),
-  `MACHIAI_MAX_CHARS`, `MACHIAI_TRANSLATE_CMD`.
+  `MACHIAI_MAX_CHARS`, `MACHIAI_TRANSLATE_CMD`, `MACHIAI_REQUIRE_APP` (default `1`).
+- On launch the app refreshes the installed copies in `$MACHIAI_HOME/hooks/` from its bundle when
+  they differ (only if the hook is already installed), so app updates reach the hook.
 - The system prompt (validated in spike, resists "just reply OK"-style injection):
 
 ```

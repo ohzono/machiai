@@ -35,6 +35,16 @@ struct PreferencesTests {
         #expect(reloaded.targetLanguage == "English (it's casual)")
     }
 
+    @Test func translatesOnlyWhileOpenDefaultsOnAndRoundTrips() throws {
+        let preferences = try makePreferences()
+        #expect(preferences.translatesOnlyWhileOpen)
+        preferences.translatesOnlyWhileOpen = false
+        #expect(Preferences.parseConfig(try String(contentsOf: paths.configFile, encoding: .utf8))["MACHIAI_REQUIRE_APP"] == "0")
+        #expect(try makePreferences().translatesOnlyWhileOpen == false)
+        preferences.translatesOnlyWhileOpen = true
+        #expect(Preferences.parseConfig(try String(contentsOf: paths.configFile, encoding: .utf8))["MACHIAI_REQUIRE_APP"] == "1")
+    }
+
     @Test func configKeepsKeysItDoesNotManage() throws {
         try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
         try "MACHIAI_TRANSLATE_CMD='ollama run llama3.2'\n".write(to: paths.configFile, atomically: true, encoding: .utf8)
@@ -87,6 +97,38 @@ struct HookInstallerDetectionTests {
         let link = FileManager.default.temporaryDirectory.appending(path: "link-\(UUID().uuidString).json")
         try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
         #expect(HookInstaller.settingsReferenceHook(at: link))
+    }
+}
+
+@MainActor
+struct HookSyncTests {
+    let root = FileManager.default.temporaryDirectory.appending(path: "machiai-sync-\(UUID().uuidString)")
+    var bundle: URL { root.appending(path: "bundle") }
+    var installed: URL { root.appending(path: "installed") }
+
+    func installer() throws -> HookInstaller {
+        try FileManager.default.createDirectory(at: bundle, withIntermediateDirectories: true)
+        try "new hook".write(to: bundle.appending(path: "machiai-hook.sh"), atomically: true, encoding: .utf8)
+        try "new translate".write(to: bundle.appending(path: "translate.sh"), atomically: true, encoding: .utf8)
+        return HookInstaller(settingsURL: root.appending(path: "settings.json"),
+                             bundledScript: bundle.appending(path: "install.sh"))
+    }
+
+    @Test func refreshesStaleInstalledHooks() throws {
+        let installer = try installer()
+        try FileManager.default.createDirectory(at: installed, withIntermediateDirectories: true)
+        try "old hook".write(to: installed.appending(path: "machiai-hook.sh"), atomically: true, encoding: .utf8)
+        installer.syncInstalledHooks(into: installed)
+        #expect(try String(contentsOf: installed.appending(path: "machiai-hook.sh"), encoding: .utf8) == "new hook")
+        #expect(try String(contentsOf: installed.appending(path: "translate.sh"), encoding: .utf8) == "new translate")
+        let mode = try FileManager.default.attributesOfItem(atPath: installed.appending(path: "machiai-hook.sh").path)[.posixPermissions] as? Int
+        #expect(mode == 0o755)
+    }
+
+    @Test func doesNotInstallWhenNotInstalled() throws {
+        let installer = try installer()
+        installer.syncInstalledHooks(into: installed)
+        #expect(!FileManager.default.fileExists(atPath: installed.path))
     }
 }
 

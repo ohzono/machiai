@@ -13,6 +13,9 @@ ok()   { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
 ng()   { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; [ $# -gt 1 ] && printf '       %s\n' "$2"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1" "$2"; fi; }
 
+# Most tests exercise capture itself; the app-running gate has its own section below.
+export MACHIAI_REQUIRE_APP=0
+
 new_home() {
   H="$(mktemp -d)"
   mkdir -p "$H/inbox"
@@ -100,6 +103,24 @@ new_home; payload 'テスト' | MACHIAI_CHILD=1 "$HOOK"
 check "recursion guard -> nothing written" "[ \"\$(count)\" = 0 ]"
 new_home; printf 'MACHIAI_MAX_CHARS=3\n' > "$MACHIAI_HOME/config.env"; run_hook 'テストです'
 check "config.env MACHIAI_MAX_CHARS is honored" "[ \"\$(count)\" = 0 ]"
+
+echo "hook: only while the app is open"
+export MACHIAI_TRANSLATE_CMD='echo x'
+new_home; MACHIAI_REQUIRE_APP=1 run_hook 'テスト'
+check "app not running -> nothing written" "[ \"\$(count)\" = 0 ]"
+new_home; echo 999999 > "$MACHIAI_HOME/app.pid"; MACHIAI_REQUIRE_APP=1 run_hook 'テスト'
+check "stale pid -> nothing written" "[ \"\$(count)\" = 0 ]"
+new_home; echo $$ > "$MACHIAI_HOME/app.pid"; MACHIAI_REQUIRE_APP=1 run_hook 'テスト'
+check "pid of another program -> nothing written" "[ \"\$(count)\" = 0 ]"
+# A stand-in process whose executable is named Machiai (copied system binaries refuse to run).
+FAKEAPP="$(mktemp -d)"
+printf '#include <unistd.h>\nint main(void){sleep(30);return 0;}\n' | cc -x c - -o "$FAKEAPP/Machiai"
+"$FAKEAPP/Machiai" & fake_pid=$!
+new_home; echo "$fake_pid" > "$MACHIAI_HOME/app.pid"; MACHIAI_REQUIRE_APP=1 run_hook 'テスト'
+check "app running -> captured" "[ \"\$(count)\" = 1 ]"
+new_home; printf "MACHIAI_REQUIRE_APP='0'\n" > "$MACHIAI_HOME/config.env"; (unset MACHIAI_REQUIRE_APP; run_hook 'テスト')
+check "config.env can allow capture without the app" "[ \"\$(count)\" = 1 ]"
+kill "$fake_pid" 2>/dev/null
 
 echo "install.sh"
 new_home
