@@ -132,6 +132,11 @@ L="$(mktemp -d)"; ln -s "$L/b.json" "$L/a.json"; ln -s "$L/a.json" "$L/b.json"
 CLAUDE_SETTINGS="$L/a.json" "$INSTALL" >/dev/null 2>&1; rc=$?
 check "symlink loop fails instead of hanging" "[ $rc -ne 0 ]"
 
+B1="$(mktemp -d)"; B2="$(mktemp -d)"; echo '{}' > "$B1/s.json"; echo '{}' > "$B2/s.json"
+before_count="$(ls "$MACHIAI_HOME/backups" | wc -l)"
+CLAUDE_SETTINGS="$B1/s.json" "$INSTALL" >/dev/null; CLAUDE_SETTINGS="$B2/s.json" "$INSTALL" >/dev/null
+check "backups for different targets in the same second do not collide" "[ \$(( \$(ls \"\$MACHIAI_HOME/backups\" | wc -l) - before_count )) -eq 2 ]"
+
 S2="$(mktemp -d)"; export CLAUDE_SETTINGS="$S2/settings.json"
 "$INSTALL" >/dev/null; "$INSTALL" --uninstall >/dev/null
 check "install+uninstall on a fresh file leaves {}" "[ \"\$(\$JQ -c . \"$S2/settings.json\")\" = '{}' ]"

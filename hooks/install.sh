@@ -96,7 +96,8 @@ mkdir -p "$(dirname "$target")"
 if [ -f "$target" ]; then
   # Keep backups out of the settings directory: it is often a dotfiles git repo.
   mkdir -p "$MACHIAI_HOME/backups"
-  backup="$MACHIAI_HOME/backups/settings.json.$(date +%Y%m%d%H%M%S)"
+  # mktemp keeps names unique across settings targets and runs within the same second.
+  backup="$(mktemp "$MACHIAI_HOME/backups/settings.json.$(date +%Y%m%d%H%M%S).XXXXXX")"
   cp "$target" "$backup"
   echo "Backup: $backup"
 fi
