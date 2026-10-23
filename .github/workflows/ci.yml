@@ -5,13 +5,49 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  # Docs-only changes skip the macOS job; a skipped job still reports as success.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            app:
+              - 'App/**'
+              - 'hooks/**'
+              - 'tests/**'
+              - 'Project.swift'
+              - 'Tuist.swift'
+              - 'Tuist/**'
+              - '**/Package.swift'
+              - '**/Package.resolved'
+              - '.mise.toml'
+              - '.github/workflows/ci.yml'
+
   test:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v5
       - name: Hook tests
         run: tests/hook_test.sh
       - name: Generate project
