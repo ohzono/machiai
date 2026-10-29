@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # test の手動実行用（当面はこのときだけ動く）。
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,6 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - id: filter
+        if: github.event_name != 'workflow_dispatch'
         uses: dorny/paths-filter@v4
         with:
           filters: |
@@ -42,8 +45,11 @@ jobs:
 
   test:
     needs: changes
-    if: needs.changes.outputs.app == 'true'
-    runs-on: macos-15
+    # GitHub hosted の macOS ランナーは使用禁止（Seigoさん指示、2026-10-29）。当面は手動実行（workflow_dispatch）のときだけ、
+    # mini の self-hosted で動かす。machiai の runner は mini に無いので、登録されるまでは手動実行しても runner 待ちのままになる。
+    # public リポなので、self-hosted を PR（fork を含む）で動かさない。workflow_dispatch は書き込み権限のある人しか起動できない。
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, macOS, ARM64, machiai, heavy]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -60,3 +66,28 @@ jobs:
             > build-test.log 2>&1 || { grep -n -B2 -A10 'error:' build-test.log | head -80; exit 1; }
           grep -E "Test run with [0-9]+ tests?|\*\* TEST (SUCCEEDED|FAILED) \*\*" build-test.log
           if grep -qE "Test run with 0 tests" build-test.log; then echo "0 tests ran"; exit 1; fi
+
+  # GitHub hosted の macOS ランナーは使用禁止（Seigoさん指示、2026-10-29）。
+  # Mac のビルドは mini の self-hosted か手元で行う。.github/workflows に hosted macOS の指定があれば失敗する。
+  no-hosted-macos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Check runs-on for hosted macOS
+        run: |
+          # 式は「mac[o]s-」と書き、この行自身には一致しないようにしている。
+          hits="$(find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) -exec awk '
+            /^[[:space:]]*#/ { next }
+            { line = $0; sub(/[[:space:]]#.*$/, "", line) }
+            tolower(line) ~ /mac[o]s-[0-9a-z]/ { printf "%s:%d: %s\n", FILENAME, FNR, $0 }
+          ' {} +)"
+          if [ -n "$hits" ]; then
+            printf '%s\n' "$hits"
+            echo "::error::GitHub hosted の macOS ランナーは使用禁止です（Seigoさん指示）。runs-on は mini の self-hosted ラベルにするか、手元でビルドしてください。"
+            exit 1
+          fi
+          echo "hosted macOS ランナーの指定はありません。"
